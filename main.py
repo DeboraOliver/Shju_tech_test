@@ -1,33 +1,31 @@
+import os
 import dload
 import pandas as pd
-import json
-import os, csv
-import numpy as np
 
-#dload.save_unzip("https://www.jodidata.org/_resources/files/downloads/gas-data/jodi_gas_csv_beta.zip")
+def jsonforshooju(url):
+    #Let's download and unzip our file
+    dload.save_unzip(url)
 
-dirpath = os.getcwd()
-raw_data = dirpath + "\jodi_gas_csv_beta\jodi_gas_beta.csv"
+    #getting its location
+    dirpath = os.getcwd()
+    raw_data = dirpath + "\jodi_gas_csv_beta\jodi_gas_beta.csv"
 
-#criar uma coluna com o id chamado serie_id
+    #putting all data into a dataframe and creating a new column for series_id
+    df = pd.read_csv(raw_data)
+    df['series_id'] = df['REF_AREA'] + '-' + df['ENERGY_PRODUCT'] + '-' +  df['FLOW_BREAKDOWN']  + '-' +  df['UNIT_MEASURE'].map(str)
 
-df = pd.read_csv(raw_data)
-df['series_id'] = df['REF_AREA'] + '-' + df['ENERGY_PRODUCT'] + '-' +  df['FLOW_BREAKDOWN']  + '-' +  df['UNIT_MEASURE'].map(str)
-df.head()
+    #creating a time and assessment code array
+    df = df.assign(points = df[['TIME_PERIOD', 'ASSESSMENT_CODE']].values.tolist())
 
-#converter o tempo
+    #let´s use OBS_VALUE as additional field
+    df = df.rename(columns = {'OBS_VALUE':'field_obs_value'})
 
-#criar um array
-df = df.assign(points = df[['TIME_PERIOD', 'ASSESSMENT_CODE']].values.tolist())
+    #selecting only useful columns
+    df = pd.DataFrame(df, columns = ['series_id', 'points','field_obs_value'])
 
-#Vou usar o campo OBS_VALUE como fields (informações adicionais)
-df = df.rename(columns = {'OBS_VALUE':'field_obs_value'})
+    #creating a NDJson also known as Json Line
+    df.to_json('JsonResult.json', orient = 'records', lines = True)
 
-#selecionar as colunas que realmente preciso
-df = pd.DataFrame(df, columns = ['series_id', 'points','field_obs_value'])
-
-#criar e salvar o json
-result = df.to_json(orient='records')
-parsed = json.loads(result)
-print(json.dumps(parsed, indent=4))
-#df.to_json('JsonResult.json', orient = 'records')
+if __name__ == '__main__':
+    url = "https://www.jodidata.org/_resources/files/downloads/gas-data/jodi_gas_csv_beta.zip"
+    jsonforshooju (url)
